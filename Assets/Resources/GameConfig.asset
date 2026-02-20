@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d87c204d3b7af594d9bfce9d5bb18740, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: Assembly-CSharp::GameConfig
+  graffitiSprites:
+  - {fileID: 21300000, guid: a23660af9984f1546950eb2412bad587, type: 3}
+  - {fileID: 21300000, guid: a0dae6212556e2b48aa192761c4bd10b, type: 3}
+  cellSize: 4
+  wallHeight: 5
+  wallThickness: 0.5
+  moveSpeed: 8
+  lookSensitivity: 0.12
+  cameraHeight: 2
+  graffitiSize: 0.6
+  graffitiOffset: 0.02
+  wallColors:
+  - {r: 0.1333333, g: 0.5450981, b: 0.1333333, a: 1}
+  - {r: 0, g: 0.3921569, b: 0, a: 1}
+  floorColor: {r: 0.8113208, g: 0.76157, b: 0.76742303, a: 0.3764706}
+  backgroundTextures:
+  - {fileID: 2800000, guid: 314fa6f87b1c3f543a4f854a6363db5f, type: 3}
+  - {fileID: 2800000, guid: 314fa6f87b1c3f543a4f854a6363db5f, type: 3}
+  - {fileID: 2800000, guid: 4ac66719bd7265147ae2acb95a676711, type: 3}
+  - {fileID: 2800000, guid: 4ac66719bd7265147ae2acb95a676711, type: 3}
+  backgroundSize: 200
+  backgroundHeight: 70
+  footstepLoop: {fileID: 8300000, guid: c3b9b44654f775e47a4a408f25ae1c42, type: 3}
+  backgroundMusic: {fileID: 8300000, guid: 55ef2806dcfd29a41916ae3ccf8fad5e, type: 3}
+  footstepVolume: 0.65
+  musicVolume: 0.45
+  levels:
+  - width: 10
+    height: 25
+    seed: 202601
+    useAscii: 0
+    asciiData:
+    - '########################'
+    - '#........#.............#'
+    - '#.######.#.##########..#'
+    - '#.#....#.#......#......#'
+    - '#.#.##.#.######.#.######'
+    - '#...##...#....#.#......#'
+    - '###.######.##.#.######.#'
+    - '#...#......##.#......#.#'
+    - '#.###.########.#######.#'
+    - '#.....#........#.......#'
+    - '########################'
+  - width: 24
+    height: 18
+    seed: 202602
+    useAscii: 0
+    asciiData: []
+  - width: 34
+    height: 24
+    seed: 202603
+    useAscii: 0
+    asciiData: []

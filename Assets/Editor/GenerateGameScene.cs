@@ -92,6 +92,11 @@ CONTINUE:
         // Game root + controller
         GameObject game = new GameObject("Game");
         var controller = game.AddComponent<LabyrinthGame>();
+        var uiManager = game.AddComponent<UIManager>();
+
+        // Create or find GameConfig
+        GameConfig config = CreateOrFindGameConfig();
+        controller.gameConfig = config;
 
         // Player
         CreatePlayer(out GameObject player, out Camera cam);
@@ -105,18 +110,21 @@ CONTINUE:
         new GameObject("LevelsRoot").transform.SetParent(game.transform, false);
 
         // Main Menu UI
-        CreateMainMenu(controller, out Canvas mainCanvas);
+        CreateMainMenu(uiManager, out Canvas mainCanvas);
 
         // Pause UI
-        CreatePauseMenu(controller, out Canvas pauseCanvas);
+        CreatePauseMenu(uiManager, out Canvas pauseCanvas);
 
-        // Связи
-        controller.mainMenuCanvas = mainCanvas;
-        controller.pauseCanvas = pauseCanvas;
+        // Assign UI references to UIManager
+        uiManager.mainMenuCanvas = mainCanvas;
+        uiManager.pauseCanvas = pauseCanvas;
+
+        // Refresh button listeners now that all UI references are assigned
+        uiManager.RefreshButtonListeners();
 
         // По умолчанию инструкции скрыты
-        if (controller.instructionsText != null)
-            controller.instructionsText.gameObject.SetActive(false);
+        if (uiManager.instructionsText != null)
+            uiManager.instructionsText.gameObject.SetActive(false);
 
         // Важно: чтобы ссылка на Player/Audio нашлась по имени в Awake()
         player.name = "Player";
@@ -199,15 +207,52 @@ CONTINUE:
     }
 
     /// <summary>
+    /// Creates or finds a GameConfig asset.
+    /// </summary>
+    private static GameConfig CreateOrFindGameConfig()
+    {
+        // Try to find existing config
+        string[] guids = AssetDatabase.FindAssets("t:GameConfig");
+        if (guids.Length > 0)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guids[0]);
+            GameConfig config = AssetDatabase.LoadAssetAtPath<GameConfig>(path);
+            if (config != null)
+            {
+                Debug.Log($"Found existing GameConfig at {path}");
+                return config;
+            }
+        }
+
+        // Ensure Resources folder exists
+        if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+        {
+            AssetDatabase.CreateFolder("Assets", "Resources");
+        }
+
+        // Create new config in Resources folder (so it can be loaded at runtime)
+        GameConfig newConfig = ScriptableObject.CreateInstance<GameConfig>();
+        string configPath = "Assets/Resources/GameConfig.asset";
+        AssetDatabase.CreateAsset(newConfig, configPath);
+        AssetDatabase.SaveAssets();
+        Debug.Log($"Created new GameConfig at {configPath}");
+        return newConfig;
+    }
+
+    /// <summary>
     /// Создает главное меню (Canvas + кнопки).
     /// </summary>
-    private static void CreateMainMenu(LabyrinthGame controller, out Canvas canvas)
+    private static void CreateMainMenu(UIManager uiManager, out Canvas canvas)
     {
         var root = new GameObject("MainMenu");
         canvas = root.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
 
-        root.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        var scaler = root.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.matchWidthOrHeight = 0.5f;
+        
         root.AddComponent<GraphicRaycaster>();
 
         var panel = CreatePanel(root.transform, "Panel");
@@ -226,40 +271,38 @@ CONTINUE:
         rt.anchoredPosition = new Vector2(0, -20);
 
         // Level buttons
-        controller.level1Button = CreateButton(buttons.transform, "Level 1", new Vector2(0, 120));
-        controller.level2Button = CreateButton(buttons.transform, "Level 2", new Vector2(0, 40));
-        controller.level3Button = CreateButton(buttons.transform, "Level 3", new Vector2(0, -40));
-        controller.instructionsButton = CreateButton(buttons.transform, "Instructions", new Vector2(0, -120));
+        uiManager.level1Button = CreateButton(buttons.transform, "Level 1", new Vector2(0, 120));
+        uiManager.level2Button = CreateButton(buttons.transform, "Level 2", new Vector2(0, 40));
+        uiManager.level3Button = CreateButton(buttons.transform, "Level 3", new Vector2(0, -40));
+        uiManager.instructionsButton = CreateButton(buttons.transform, "Instructions", new Vector2(0, -120));
 
         // Placeholder
         var placeholder = CreateText(panel.transform, "Placeholder", "More buttons coming soon...", 16, TextAnchor.LowerCenter);
         (placeholder.transform as RectTransform).anchoredPosition = new Vector2(0, 18);
 
         // Instructions text (toggle)
-        controller.instructionsText = CreateText(panel.transform, "InstructionsText",
+        uiManager.instructionsText = CreateText(panel.transform, "InstructionsText",
             "WASD = Move\nMouse = Look\nQ/E = Down/Up\nLMB = Place graffiti\nESC = Pause",
             18, TextAnchor.MiddleCenter);
-        var insRT = controller.instructionsText.transform as RectTransform;
+        var insRT = uiManager.instructionsText.transform as RectTransform;
         insRT.sizeDelta = new Vector2(520, 220);
         insRT.anchoredPosition = new Vector2(0, 170);
-
-        // Bind events
-        controller.level1Button.onClick.AddListener(controller.UI_LoadLevel1);
-        controller.level2Button.onClick.AddListener(controller.UI_LoadLevel2);
-        controller.level3Button.onClick.AddListener(controller.UI_LoadLevel3);
-        controller.instructionsButton.onClick.AddListener(controller.UI_ToggleInstructions);
     }
 
     /// <summary>
     /// Создает меню паузы (Canvas + кнопки).
     /// </summary>
-    private static void CreatePauseMenu(LabyrinthGame controller, out Canvas canvas)
+    private static void CreatePauseMenu(UIManager uiManager, out Canvas canvas)
     {
         var root = new GameObject("PauseMenu");
         canvas = root.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
 
-        root.AddComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        var scaler = root.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.matchWidthOrHeight = 0.5f;
+        
         root.AddComponent<GraphicRaycaster>();
 
         var panel = CreatePanel(root.transform, "Panel");
@@ -268,15 +311,10 @@ CONTINUE:
         var title = CreateText(panel.transform, "Title", "PAUSED", 34, TextAnchor.UpperCenter);
         (title.transform as RectTransform).anchoredPosition = new Vector2(0, -50);
 
-        controller.continueButton = CreateButton(panel.transform, "Continue", new Vector2(0, 40));
-        controller.soundOnButton = CreateButton(panel.transform, "Sound ON", new Vector2(0, -40));
-        controller.soundOffButton = CreateButton(panel.transform, "Sound OFF", new Vector2(0, -120));
-        controller.quitButton = CreateButton(panel.transform, "Quit", new Vector2(0, -200));
-
-        controller.continueButton.onClick.AddListener(controller.UI_Continue);
-        controller.soundOnButton.onClick.AddListener(controller.UI_SoundOn);
-        controller.soundOffButton.onClick.AddListener(controller.UI_SoundOff);
-        controller.quitButton.onClick.AddListener(controller.UI_QuitToMenu);
+        uiManager.continueButton = CreateButton(panel.transform, "Continue", new Vector2(0, 40));
+        uiManager.soundOnButton = CreateButton(panel.transform, "Sound ON", new Vector2(0, -40));
+        uiManager.soundOffButton = CreateButton(panel.transform, "Sound OFF", new Vector2(0, -120));
+        uiManager.quitButton = CreateButton(panel.transform, "Quit", new Vector2(0, -200));
 
         // стартово скрыто (runtime включит при паузе)
         root.SetActive(false);
