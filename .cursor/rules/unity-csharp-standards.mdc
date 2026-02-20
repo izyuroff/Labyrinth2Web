@@ -1,0 +1,287 @@
+---
+description: Unity and C# coding standards for this project
+globs: **/*.cs
+alwaysApply: false
+---
+
+# Unity/C# Coding Standards
+
+## Naming Conventions
+
+### Classes and Public Members
+- **Classes**: PascalCase (e.g., `LabyrinthGame`, `GenerateGameScene`)
+- **Public methods**: PascalCase (e.g., `LoadLevel`, `UI_Continue`)
+- **Public fields**: PascalCase (e.g., `mainMenuCanvas`, `moveSpeed`)
+
+### Private Members
+- **Private fields**: Prefix with underscore `_` (e.g., `_cc`, `_playerRoot`, `_isPaused`)
+- **Private methods**: PascalCase (e.g., `UpdateMovement`, `CreateWallAtWorld`)
+- **Local variables**: camelCase (e.g., `delta`, `mv`, `dir`)
+
+### Constants
+- **Constants**: PascalCase with `const` keyword (e.g., `const string PendingKey = "LG_PendingGenerate"`)
+
+## Unity-Specific Patterns
+
+### MonoBehaviour Lifecycle
+```csharp
+// ✅ GOOD: Proper lifecycle order
+private void Awake()
+{
+    // Initialize references, create objects
+}
+
+private void OnEnable()
+{
+    // Enable input actions, subscribe to events
+}
+
+private void OnDisable()
+{
+    // Disable input actions, unsubscribe from events
+}
+
+private void Update()
+{
+    // Per-frame logic
+}
+```
+
+### Serialized Fields
+```csharp
+// ✅ GOOD: Use [Header] for organization
+[Header("Параметры игрока")]
+public float moveSpeed = 8f;
+public float lookSensitivity = 0.12f;
+
+[Header("Аудио (WebGL: wav/ogg)")]
+public AudioClip footstepLoop;
+public AudioClip backgroundMusic;
+```
+
+### Component References
+```csharp
+// ✅ GOOD: Cache component references
+private CharacterController _cc;
+private Camera _cam;
+
+private void Awake()
+{
+    _cc = GetComponent<CharacterController>();
+    _cam = GetComponentInChildren<Camera>(true);
+}
+
+// ❌ BAD: Don't call GetComponent every frame
+private void Update()
+{
+    GetComponent<CharacterController>().Move(direction); // BAD!
+}
+```
+
+### GameObject Creation
+```csharp
+// ✅ GOOD: Set parent immediately, use meaningful names
+GameObject wall = new GameObject($"Wall_{wallId}");
+wall.transform.SetParent(parent, false);
+wall.name = "WallSegment";
+
+// ✅ GOOD: Use CreatePrimitive when appropriate
+GameObject floor = GameObject.CreatePrimitive(PrimitiveType.Quad);
+floor.name = "Floor";
+```
+
+## Documentation
+
+### XML Documentation Comments
+```csharp
+// ✅ GOOD: Document public and important private methods
+/// <summary>
+/// Загрузка/генерация уровня по индексу.
+/// </summary>
+/// <param name="levelIndex">1..3</param>
+private void LoadLevel(int levelIndex)
+{
+    // Implementation
+}
+
+/// <summary>
+/// Обновляет вращение камеры мышью.
+/// </summary>
+private void UpdateLook()
+{
+    // Implementation
+}
+```
+
+## Code Organization
+
+### Method Ordering
+1. Unity lifecycle methods (`Awake`, `OnEnable`, `Start`, `Update`, etc.)
+2. Public methods (UI handlers, public API)
+3. Private helper methods (grouped by functionality)
+
+### Using Directives
+```csharp
+// ✅ GOOD: Group and organize usings
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.InputSystem;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+```
+
+## Error Handling
+
+### Null Checks
+```csharp
+// ✅ GOOD: Check for null before using Unity objects
+if (_cam == null || _playerRoot == null) return;
+
+if (mainMenuCanvas != null) 
+    mainMenuCanvas.gameObject.SetActive(visible);
+
+// ✅ GOOD: Use null-conditional operator when appropriate
+_moveAction?.Enable();
+_footstepsSource?.Stop();
+```
+
+### Debug Logging
+```csharp
+// ✅ GOOD: Use Debug.Log for important events
+Debug.Log("LoadLevel " + levelIndex);
+
+// ✅ GOOD: Use Debug.LogError for critical issues
+Debug.LogError("URP Lit shader not found. Check URP setup.");
+```
+
+## Performance Best Practices
+
+### Avoid Allocations in Update
+```csharp
+// ✅ GOOD: Cache collections and reuse
+private readonly Dictionary<Sprite, Mesh> _spriteMeshCache = new Dictionary<Sprite, Mesh>();
+
+// ❌ BAD: Don't allocate every frame
+private void Update()
+{
+    var list = new List<Vector3>(); // BAD!
+}
+```
+
+### Use Object Pooling for Frequent Instantiation
+```csharp
+// ✅ GOOD: Consider pooling for frequently created/destroyed objects
+// For example, graffiti objects could be pooled
+```
+
+### Efficient Raycasting
+```csharp
+// ✅ GOOD: Use appropriate raycast distance
+Ray r = new Ray(_cam.transform.position, _cam.transform.forward);
+if (!Physics.Raycast(r, out RaycastHit hit, 500f)) return;
+```
+
+## Input System
+
+### Input Actions
+```csharp
+// ✅ GOOD: Create InputActions programmatically
+private InputAction _moveAction;
+private InputAction _lookAction;
+
+private void CreateInputActions()
+{
+    _moveAction = new InputAction("Move", InputActionType.Value, null, null, null, "Vector2");
+    _moveAction.AddCompositeBinding("2DVector")
+        .With("Up", "<Keyboard>/w")
+        .With("Down", "<Keyboard>/s");
+}
+
+private void OnEnable()
+{
+    _moveAction?.Enable();
+}
+
+private void OnDisable()
+{
+    _moveAction?.Disable();
+}
+```
+
+## Material and Shader Handling
+
+### URP Shader Access
+```csharp
+// ✅ GOOD: Find shader and handle null case
+Shader lit = Shader.Find("Universal Render Pipeline/Lit");
+if (lit == null)
+{
+    Debug.LogError("URP Lit shader not found.");
+    return;
+}
+
+Material mat = new Material(lit);
+```
+
+### Material Properties
+```csharp
+// ✅ GOOD: Check for property existence before setting
+if (mat.HasProperty("_BaseColor"))
+    mat.SetColor("_BaseColor", Color.white);
+if (mat.HasProperty("_BaseMap"))
+    mat.SetTexture("_BaseMap", texture);
+```
+
+## Editor Scripts
+
+### Menu Items
+```csharp
+// ✅ GOOD: Use MenuItem attribute for editor tools
+[MenuItem("Tools/Generate Game")]
+public static void Generate()
+{
+    // Implementation
+}
+```
+
+### Conditional Compilation
+```csharp
+// ✅ GOOD: Use preprocessor directives for editor-only code
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+#if UNITY_EDITOR
+    // Editor-only code
+#endif
+```
+
+## Code Style
+
+### Braces and Indentation
+- Use braces for all control structures, even single-line
+- Use 4 spaces for indentation (Unity default)
+- Place opening brace on same line
+
+### Spacing
+```csharp
+// ✅ GOOD: Consistent spacing
+for (int i = 0; i < 4; i++)
+{
+    var n = cur + dirs[i];
+    if (n.x < 0 || n.y < 0) continue;
+}
+
+// ✅ GOOD: Spacing around operators
+Vector3 dir = (forward * mv.y + right * mv.x);
+if (dir.sqrMagnitude > 1f) dir.Normalize();
+```
+
+### Comments
+- Use XML documentation comments for public APIs
+- Use inline comments sparingly, only when logic is complex
+- Prefer self-documenting code over comments
