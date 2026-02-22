@@ -36,11 +36,23 @@ public class MaterialManager : MonoBehaviour
     /// </summary>
     private bool PrepareMaterials()
     {
-        Shader lit = Shader.Find("Universal Render Pipeline/Lit");
+        Shader lit = FindFirstAvailableShader(
+            "Universal Render Pipeline/Lit",
+            "Universal Render Pipeline/Simple Lit",
+            "Standard",
+            "Unlit/Texture",
+            "Sprites/Default"
+        );
+
         if (lit == null)
         {
-            Debug.LogError("MaterialManager: URP Lit shader not found. Check URP setup (URP pipeline asset assigned).");
+            Debug.LogError("MaterialManager: No compatible shader found for runtime material creation.");
             return false;
+        }
+
+        if (lit.name != "Universal Render Pipeline/Lit")
+        {
+            Debug.LogWarning($"MaterialManager: Fallback shader in use: {lit.name}");
         }
 
         // Floor material
@@ -95,6 +107,25 @@ public class MaterialManager : MonoBehaviour
             _graffitiMatTemplate.color = Color.white;
 
         return true;
+    }
+
+    private static Shader FindFirstAvailableShader(params string[] shaderNames)
+    {
+        if (shaderNames == null)
+            return null;
+
+        for (int i = 0; i < shaderNames.Length; i++)
+        {
+            string shaderName = shaderNames[i];
+            if (string.IsNullOrEmpty(shaderName))
+                continue;
+
+            Shader shader = Shader.Find(shaderName);
+            if (shader != null)
+                return shader;
+        }
+
+        return null;
     }
 
     /// <summary>

@@ -38,6 +38,13 @@ public class LabyrinthGame : MonoBehaviour
     /// </summary>
     private void Awake()
     {
+        // Resolve UI early so menu callbacks can still be wired in Start.
+        _uiManager = GetComponent<UIManager>();
+        if (_uiManager == null)
+        {
+            Debug.LogWarning("LabyrinthGame: UIManager component not found. UI functionality will be limited.");
+        }
+
         // Try to find GameConfig if not assigned
         if (gameConfig == null)
         {
@@ -129,13 +136,6 @@ public class LabyrinthGame : MonoBehaviour
         _pathDebugRenderer = gameObject.AddComponent<PathDebugRenderer>();
         _pathDebugRenderer.Initialize();
 
-        // UI Manager (already on this GameObject)
-        _uiManager = GetComponent<UIManager>();
-        if (_uiManager == null)
-        {
-            Debug.LogWarning("LabyrinthGame: UIManager component not found. UI functionality will be limited.");
-        }
-
         return true;
     }
 
@@ -144,7 +144,12 @@ public class LabyrinthGame : MonoBehaviour
     /// </summary>
     private void SetupUICallbacks()
     {
-        if (_uiManager == null) return;
+        if (_uiManager == null)
+        {
+            _uiManager = GetComponent<UIManager>();
+            if (_uiManager == null)
+                return;
+        }
 
         _uiManager.Initialize(
             onLevelSelected: LoadLevel,

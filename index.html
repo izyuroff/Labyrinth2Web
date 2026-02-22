@@ -1,0 +1,104 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>LabyrinthSankekGame</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+    #unity-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+    }
+    #unity-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #unity-loading-bar {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      width: 80%;
+      max-width: 400px;
+      height: 16px;
+      margin-left: -40%;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    #unity-progress {
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, #28a745, #5bc0de);
+    }
+  </style>
+  <script>
+    const BUILD_VER = Date.now();
+    const versionedUrl = (path) => `${path}?v=${BUILD_VER}`;
+    const appendScript = (path) => {
+      const script = document.createElement('script');
+      script.src = versionedUrl(path);
+      document.head.appendChild(script);
+      return script;
+    };
+  </script>
+  <script src="wasm_no_streaming_patch.js"></script>
+</head>
+<body>
+  <div id="unity-container">
+    <canvas id="unity-canvas"></canvas>
+    <div id="unity-loading-bar">
+      <div id="unity-progress"></div>
+    </div>
+  </div>
+  <script>
+    const progressElement = document.getElementById('unity-progress');
+    const loaderScript = appendScript('Build/LabyrinthSankekGame.loader.js');
+
+    const buildConfig = {
+      dataUrl: versionedUrl('Build/LabyrinthSankekGame.data'),
+      frameworkUrl: versionedUrl('Build/LabyrinthSankekGame.framework.js'),
+      codeUrl: versionedUrl('Build/LabyrinthSankekGame.wasm'),
+      streamingAssetsUrl: 'StreamingAssets',
+      companyName: 'DefaultCompany',
+      productName: 'LabyrinthSankekGame',
+      productVersion: '1.0',
+    };
+
+    const updateProgress = (progress) => {
+      if (progressElement) {
+        progressElement.style.width = `${Math.floor(progress * 100)}%`;
+      }
+    };
+
+    loaderScript.addEventListener('load', () => {
+      if (typeof createUnityInstance !== 'function') {
+        console.error('Unity loader did not expose createUnityInstance.');
+        return;
+      }
+
+      createUnityInstance(document.getElementById('unity-canvas'), buildConfig, updateProgress)
+        .then((unityInstance) => {
+          console.log('Unity instance created', unityInstance);
+        })
+        .catch((message) => {
+          console.error('createUnityInstance failed:', message);
+          alert(message);
+        });
+    });
+
+    loaderScript.addEventListener('error', (event) => {
+      console.error('Failed to load Unity loader script', event);
+    });
+  </script>
+</body>
+</html>
