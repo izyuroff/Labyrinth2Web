@@ -1058,7 +1058,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Sankek Game 2026
+  m_Text: "Sankek Game \n\n2019 - 2026"
 --- !u!222 &279288383
 CanvasRenderer:
   m_ObjectHideFlags: 0
