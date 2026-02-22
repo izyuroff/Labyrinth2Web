@@ -271,6 +271,14 @@ public class LabyrinthGame : MonoBehaviour
             return;
         }
 
+        // Switch UI/cursor state before heavy generation so WebGL transitions immediately.
+        _uiManager?.SetMainMenuVisible(false);
+        _uiManager?.SetPaused(false);
+        _uiManager?.HideInstructions();
+        _playerController?.SetCursorLocked(true);
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
         _mazeGenerator.GenerateLevel(levelConfig, _activeLevelRoot.transform, levelIndex, out entrance1Position, out entrance2Position);
         
         // Set debug path after maze generation
@@ -292,14 +300,6 @@ public class LabyrinthGame : MonoBehaviour
             Debug.LogWarning("LabyrinthGame: PlayerController is null, cannot position player!");
         }
 
-        // Update UI state
-        _uiManager?.SetMainMenuVisible(false);
-        _uiManager?.SetPaused(false);
-        _playerController?.SetCursorLocked(true);
-        
-        // Ensure cursor is locked when starting level
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
     }
 
     /// <summary>

@@ -43,6 +43,7 @@ public class UIManager : MonoBehaviour
         _onQuitToMenu = onQuitToMenu;
         _onSoundToggle = onSoundToggle;
 
+        EnsureCanvasReferences();
         CreatePauseAction();
         EnablePauseAction();
         
@@ -71,6 +72,23 @@ public class UIManager : MonoBehaviour
     public void RefreshButtonListeners()
     {
         SetupButtonListeners();
+    }
+
+    private void EnsureCanvasReferences()
+    {
+        if (mainMenuCanvas == null)
+        {
+            GameObject mainMenuRoot = GameObject.Find("MainMenu");
+            if (mainMenuRoot != null)
+                mainMenuCanvas = mainMenuRoot.GetComponent<Canvas>();
+        }
+
+        if (pauseCanvas == null)
+        {
+            GameObject pauseMenuRoot = GameObject.Find("PauseMenu");
+            if (pauseMenuRoot != null)
+                pauseCanvas = pauseMenuRoot.GetComponent<Canvas>();
+        }
     }
 
     /// <summary>
@@ -208,6 +226,7 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void SetMainMenuVisible(bool visible)
     {
+        EnsureCanvasReferences();
         _inMainMenu = visible;
         if (mainMenuCanvas != null)
             mainMenuCanvas.gameObject.SetActive(visible);
@@ -218,8 +237,15 @@ public class UIManager : MonoBehaviour
     /// </summary>
     public void SetPauseVisible(bool visible)
     {
+        EnsureCanvasReferences();
         if (pauseCanvas != null)
             pauseCanvas.gameObject.SetActive(visible);
+    }
+
+    public void HideInstructions()
+    {
+        if (instructionsText != null && instructionsText.gameObject.activeSelf)
+            instructionsText.gameObject.SetActive(false);
     }
 
     /// <summary>
