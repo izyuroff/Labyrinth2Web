@@ -10,6 +10,7 @@ public class MaterialManager : MonoBehaviour
     private Material _wallMatTemplate;
     private Material _graffitiMatTemplate;
     private GameConfig _config;
+    private bool _isReady;
 
     /// <summary>
     /// Initialize materials with configuration.
@@ -21,22 +22,25 @@ public class MaterialManager : MonoBehaviour
         if (_config == null)
         {
             Debug.LogError("MaterialManager: GameConfig is null!");
+            _isReady = false;
             return;
         }
 
-        PrepareMaterials();
+        _isReady = PrepareMaterials();
     }
+
+    public bool IsReady => _isReady;
 
     /// <summary>
     /// Prepares materials for floor, walls, background, and graffiti.
     /// </summary>
-    private void PrepareMaterials()
+    private bool PrepareMaterials()
     {
         Shader lit = Shader.Find("Universal Render Pipeline/Lit");
         if (lit == null)
         {
             Debug.LogError("MaterialManager: URP Lit shader not found. Check URP setup (URP pipeline asset assigned).");
-            return;
+            return false;
         }
 
         // Floor material
@@ -89,6 +93,8 @@ public class MaterialManager : MonoBehaviour
             _graffitiMatTemplate.SetColor("_BaseColor", Color.white);
         else
             _graffitiMatTemplate.color = Color.white;
+
+        return true;
     }
 
     /// <summary>

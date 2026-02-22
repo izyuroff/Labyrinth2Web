@@ -90,6 +90,36 @@ public class GameConfig : ScriptableObject
         if (wallHeight <= 0)
             return "Wall height must be greater than 0";
 
+        for (int i = 0; i < levels.Length; i++)
+        {
+            LevelConfig level = levels[i];
+            if (level == null)
+                return $"Level config at index {i + 1} is null";
+
+            if (level.width <= 0)
+                return $"Level {i + 1}: width must be greater than 0";
+
+            if (level.height <= 0)
+                return $"Level {i + 1}: height must be greater than 0";
+
+            if (level.useAscii)
+            {
+                if (level.asciiData == null || level.asciiData.Length == 0)
+                    return $"Level {i + 1}: ASCII data is required when useAscii is true";
+
+                int lineLength = level.asciiData[0]?.Length ?? 0;
+                if (lineLength == 0)
+                    return $"Level {i + 1}: ASCII lines must not be empty";
+
+                for (int row = 0; row < level.asciiData.Length; row++)
+                {
+                    string line = level.asciiData[row];
+                    if (line == null || line.Length != lineLength)
+                        return $"Level {i + 1}: ASCII lines must share the same length";
+                }
+            }
+        }
+
         return null;
     }
 }

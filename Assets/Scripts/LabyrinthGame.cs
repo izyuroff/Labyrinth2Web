@@ -31,6 +31,7 @@ public class LabyrinthGame : MonoBehaviour
 
     // State
     private bool _isInitialized = false;
+    private bool _mazeGeneratorReady = false;
 
     /// <summary>
     /// Initialize all game systems.
@@ -58,7 +59,8 @@ public class LabyrinthGame : MonoBehaviour
         }
 
         // Initialize components
-        InitializeComponents();
+        if (!InitializeComponents())
+            return;
 
         // Create graffiti input action
         CreateGraffitiInputAction();
@@ -80,20 +82,36 @@ public class LabyrinthGame : MonoBehaviour
     /// <summary>
     /// Initialize all game components.
     /// </summary>
-    private void InitializeComponents()
+    private bool InitializeComponents()
     {
         // Material Manager
         _materialManager = gameObject.AddComponent<MaterialManager>();
         _materialManager.Initialize(gameConfig);
+        if (!_materialManager.IsReady)
+        {
+            Debug.LogError("LabyrinthGame: MaterialManager failed to initialize.");
+            return false;
+        }
+
+        Material floorMat = _materialManager.GetFloorMaterial();
+        Material wallTemplate = _materialManager.GetWallMaterialTemplate();
+        Material bgMat = _materialManager.GetBackgroundMaterial();
+        Material graffitiMat = _materialManager.GetGraffitiMaterialTemplate();
+
+        if (floorMat == null || wallTemplate == null || bgMat == null || graffitiMat == null)
+        {
+            Debug.LogError("LabyrinthGame: MaterialManager did not produce required materials.");
+            return false;
+        }
 
         // Maze Generator
         _mazeGenerator = gameObject.AddComponent<MazeGenerator>();
-        _mazeGenerator.Initialize(
-            gameConfig,
-            _materialManager.GetFloorMaterial(),
-            _materialManager.GetWallMaterialTemplate(),
-            _materialManager.GetBackgroundMaterial()
-        );
+        _mazeGeneratorReady = _mazeGenerator.Initialize(gameConfig, floorMat, wallTemplate, bgMat);
+        if (!_mazeGeneratorReady)
+        {
+            Debug.LogError("LabyrinthGame: MazeGenerator failed to initialize with provided materials.");
+            return false;
+        }
 
         // Player Controller
         _playerController = gameObject.AddComponent<PlayerController>();
@@ -101,7 +119,7 @@ public class LabyrinthGame : MonoBehaviour
 
         // Graffiti System
         _graffitiSystem = gameObject.AddComponent<GraffitiSystem>();
-        _graffitiSystem.Initialize(gameConfig, _materialManager.GetGraffitiMaterialTemplate());
+        _graffitiSystem.Initialize(gameConfig, graffitiMat);
 
         // Audio Manager
         _audioManager = gameObject.AddComponent<AudioManager>();
@@ -117,6 +135,8 @@ public class LabyrinthGame : MonoBehaviour
         {
             Debug.LogWarning("LabyrinthGame: UIManager component not found. UI functionality will be limited.");
         }
+
+        return true;
     }
 
     /// <summary>
@@ -192,8 +212,6 @@ public class LabyrinthGame : MonoBehaviour
             }
         }
 
-        // Lock cursor during gameplay
-        _playerController?.SetCursorLocked(true);
     }
 
     /// <summary>
@@ -242,21 +260,19 @@ public class LabyrinthGame : MonoBehaviour
         Vector3 entrance1Position = Vector3.zero;
         Vector3 entrance2Position = Vector3.zero;
         
-        if (_mazeGenerator != null)
+        if (_mazeGenerator == null || !_mazeGeneratorReady)
         {
-            _mazeGenerator.GenerateLevel(levelConfig, _activeLevelRoot.transform, levelIndex, out entrance1Position, out entrance2Position);
-            
-            // Set debug path after maze generation
-            if (_pathDebugRenderer != null)
-            {
-                var pathPoints = _mazeGenerator.GetPathPoints();
-                _pathDebugRenderer.SetPath(pathPoints, gameConfig.cellSize);
-            }
-        }
-        else
-        {
-            Debug.LogError("LabyrinthGame: MazeGenerator is null, cannot generate level!");
+            Debug.LogError("LabyrinthGame: MazeGenerator is not initialized, cannot generate level!");
             return;
+        }
+
+        _mazeGenerator.GenerateLevel(levelConfig, _activeLevelRoot.transform, levelIndex, out entrance1Position, out entrance2Position);
+        
+        // Set debug path after maze generation
+        if (_pathDebugRenderer != null)
+        {
+            var pathPoints = _mazeGenerator.GetPathPoints();
+            _pathDebugRenderer.SetPath(pathPoints, gameConfig.cellSize);
         }
 
         // Position player at entrance 1, facing the entrance (looking into the maze)
@@ -314,6 +330,7 @@ public class LabyrinthGame : MonoBehaviour
     private void OnContinue()
     {
         _uiManager?.SetPaused(false);
+        _playerController?.SetCursorLocked(true);
     }
 
     /// <summary>

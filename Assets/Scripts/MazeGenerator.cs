@@ -32,7 +32,7 @@ public class MazeGenerator : MonoBehaviour
     /// <summary>
     /// Initialize the generator with configuration.
     /// </summary>
-    public void Initialize(GameConfig config, Material floorMat, Material wallMatTemplate, Material bgMat)
+    public bool Initialize(GameConfig config, Material floorMat, Material wallMatTemplate, Material bgMat)
     {
         _config = config;
         _floorMat = floorMat;
@@ -42,7 +42,27 @@ public class MazeGenerator : MonoBehaviour
         if (_config == null)
         {
             Debug.LogError("MazeGenerator: GameConfig is null!");
+            return false;
         }
+
+        if (_floorMat == null)
+        {
+            Debug.LogError("MazeGenerator: Floor material is null!");
+            return false;
+        }
+
+        if (_wallMatTemplate == null)
+        {
+            Debug.LogError("MazeGenerator: Wall material template is null!");
+            return false;
+        }
+
+        if (_bgMat == null)
+        {
+            Debug.LogWarning("MazeGenerator: Background material is null; background creation will be skipped.");
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -68,6 +88,14 @@ public class MazeGenerator : MonoBehaviour
 
         _mazeWidth = levelConfig.width;
         _mazeHeight = levelConfig.height;
+
+        if (_mazeWidth <= 0 || _mazeHeight <= 0)
+        {
+            Debug.LogError("MazeGenerator: Invalid maze dimensions ({_mazeWidth}x{_mazeHeight}) for level {levelIndex}.");
+            entrance1Position = Vector3.zero;
+            entrance2Position = Vector3.zero;
+            return;
+        }
 
         // Calculate padding to center maze within background (minimum 2 cells padding)
         int padding = Mathf.Max(2, Mathf.Min(_mazeWidth, _mazeHeight) / 4);
@@ -465,15 +493,32 @@ public class MazeGenerator : MonoBehaviour
     /// </summary>
     private void BuildMazeFromAscii(string[] grid, Transform parent, int levelIndex)
     {
-        if (grid == null || grid.Length == 0) return;
+        if (grid == null || grid.Length == 0)
+            return;
 
-        int rows = grid.Length;
-        int cols = grid[0].Length;
+        if (!TryParseAsciiGrid(grid, out char[][] parsed))
+        {
+            Debug.LogError($"MazeGenerator: Invalid ASCII grid for level {levelIndex}.");
+            return;
+        }
+
+        int rows = parsed.Length;
+        int cols = parsed[0].Length;
+
+        int southColumn = FindAsciiEntranceColumn(parsed, true);
+        int northColumn = FindAsciiEntranceColumn(parsed, false);
+
+        parsed[0][southColumn] = '.';
+        parsed[rows - 1][northColumn] = '.';
+
+        _entrance1 = new Vector2Int(southColumn, 0);
+        _entrance2 = new Vector2Int(northColumn, rows - 1);
 
         bool IsWall(int r, int c)
         {
-            if (r < 0 || c < 0 || r >= rows || c >= cols) return true;
-            return grid[r][c] == '#';
+            if (r < 0 || c < 0 || r >= rows || c >= cols)
+                return true;
+            return parsed[r][c] == '#';
         }
 
         int wallId = 0;
@@ -482,7 +527,8 @@ public class MazeGenerator : MonoBehaviour
         {
             for (int c = 0; c < cols; c++)
             {
-                if (!IsWall(r, c)) continue;
+                if (!IsWall(r, c))
+                    continue;
 
                 if (!IsWall(r - 1, c))
                     CreateWallSegment(parent, c, r, Direction.North, ref wallId, levelIndex);
@@ -494,15 +540,75 @@ public class MazeGenerator : MonoBehaviour
                     CreateWallSegment(parent, c, r, Direction.East, ref wallId, levelIndex);
             }
         }
-        
-        // Set two entrances for ASCII mazes (South and North sides)
-        _entrance1 = new Vector2Int(cols / 2, 0);
-        _entrance2 = new Vector2Int(cols / 2, rows - 1);
+
+        CalculatePathPointsForAscii(cols, rows);
     }
 
-    /// <summary>
-    /// Calculates path points for ASCII mazes (simplified path).
-    /// </summary>
+    private bool TryParseAsciiGrid(string[] grid, out char[][] parsed)
+    {
+        parsed = null;
+        if (grid == null || grid.Length == 0)
+            return false;
+
+        int cols = grid[0].Length;
+        if (cols == 0)
+            return false;
+
+        parsed = new char[grid.Length][];
+        for (int r = 0; r < grid.Length; r++)
+        {
+            string line = grid[r];
+            if (line == null || line.Length != cols)
+                return false;
+            parsed[r] = line.ToCharArray();
+        }
+
+        return true;
+    }
+
+    private int FindAsciiEntranceColumn(char[][] grid, bool south)
+    {
+        if (grid == null || grid.Length == 0)
+            return 0;
+
+        int rows = grid.Length;
+        int cols = grid[0].Length;
+        int startRow = south ? Math.Min(1, rows - 1) : Math.Max(rows - 2, 0);
+        int step = south ? 1 : -1;
+        int row = startRow;
+
+        while (row >= 0 && row < rows)
+        {
+            int column = FindNearestOpenColumn(grid[row]);
+            if (column >= 0)
+                return column;
+            row += step;
+        }
+
+        return cols / 2;
+    }
+
+    private int FindNearestOpenColumn(char[] row)
+    {
+        if (row == null || row.Length == 0)
+            return -1;
+
+        int cols = row.Length;
+        int center = cols / 2;
+
+        for (int offset = 0; offset <= cols; offset++)
+        {
+            int left = center - offset;
+            if (left >= 0 && row[left] != '#')
+                return left;
+
+            int right = center + offset;
+            if (right < cols && row[right] != '#')
+                return right;
+        }
+
+        return -1;
+    }
     private void CalculatePathPointsForAscii(int cols, int rows)
     {
         _pathPoints.Clear();
